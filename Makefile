@@ -8,3 +8,6 @@ help: ## Know all commands.
 
 build: ## Build the exe
 	dart compile exe bin/dart_todo_cli.dart -o todo.exe
+
+gen: ## Generate the options.g.dart
+	dart run build_runner build

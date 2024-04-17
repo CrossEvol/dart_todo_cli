@@ -10,6 +10,7 @@ Todo:
   - title
   - desc
   - priority
+- reset
 - v (verbose, default false)
 - p (priority, default medium)
 
