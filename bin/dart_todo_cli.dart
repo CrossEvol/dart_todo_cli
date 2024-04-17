@@ -8,6 +8,29 @@ import 'package:hive/hive.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+int compareTodoByPriorityThenTime(Todo t1, Todo t2) {
+  var c1 = t1.priority.index.compareTo(t2.priority.index);
+  if (c1 == 0) {
+    var c2 = t1.updateAt.compareTo(t2.updateAt);
+    if (c2 == 0) {
+      return t1.createAt.compareTo(t2.createAt);
+    } else {
+      return c2;
+    }
+  } else {
+    return t1.priority.index.compareTo(t2.priority.index);
+  }
+}
+
+List<Todo> getTodosFromHive(Box box) {
+  var todoList = box.values
+      .map((e) => e as HiveTodo)
+      .toList()
+      .map((e) => e.map2Todo())
+      .toList();
+  return todoList;
+}
+
 void main(List<String> arguments) async {
   Hive.init(p.join(Directory.systemTemp.path, 'tmp'));
   Hive.registerAdapter(HiveTodoAdapter());
@@ -17,7 +40,7 @@ void main(List<String> arguments) async {
   final runner = CommandRunner<String>('todo', 'Todo Cli')
     ..addCommand(AddCommand(box))
     ..addCommand(ListCommand(box))
-    ..addCommand(RemoveCommand())
+    ..addCommand(RemoveCommand(box))
     ..addCommand(EditCommand())
     ..addCommand(ResetCommand(box));
   runner.argParser
@@ -39,7 +62,7 @@ class AddCommand extends Command<String> {
   FutureOr<String>? run() {
     var key = Uuid().v4();
     final title = argResults?['title'] ?? '';
-    box.add(Todo(key, title).map2HiveTodo());
+    box.put(key, Todo(key, title).map2HiveTodo());
     return 'Add Todo#$title success.';
   }
 
@@ -61,16 +84,12 @@ class ListCommand extends Command<String> {
   @override
   FutureOr<String>? run() {
     final verbose = argResults?['verbose'];
-    var todoList = box.values
-        .map((e) => e as HiveTodo)
-        .toList()
-        .map((e) => e.map2Todo())
-        .toList();
-    if (box.isEmpty){
+    List<Todo> todoList = getTodosFromHive(box);
+    if (box.isEmpty) {
       return 'TodoList is Empty.';
     }
     if (verbose) {
-      todoList.sort((t1, t2) => compareTodo(t1, t2));
+      todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
       int count = 0;
       print('TodoList ################################');
       for (var todo in todoList) {
@@ -79,7 +98,7 @@ class ListCommand extends Command<String> {
         count++;
       }
     } else {
-      todoList.sort((t1, t2) => compareTodo(t1, t2));
+      todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
       int count = 0;
       print('TodoList ################################');
       for (var todo in todoList) {
@@ -88,20 +107,6 @@ class ListCommand extends Command<String> {
       }
     }
     return '';
-  }
-
-  int compareTodo(Todo t1, Todo t2) {
-    var c1 = t1.priority.index.compareTo(t2.priority.index);
-    if (c1 == 0) {
-      var c2 = t1.updateAt.compareTo(t2.updateAt);
-      if (c2 == 0) {
-        return t1.createAt.compareTo(t2.createAt);
-      } else {
-        return c2;
-      }
-    } else {
-      return t1.priority.index.compareTo(t2.priority.index);
-    }
   }
 
   ListCommand(this.box) {
@@ -113,6 +118,8 @@ class ListCommand extends Command<String> {
 }
 
 class RemoveCommand extends Command<String> {
+  late Box box;
+
   @override
   String get name => 'remove';
 
@@ -121,7 +128,23 @@ class RemoveCommand extends Command<String> {
 
   @override
   FutureOr<String>? run() {
-    return description;
+    var index = int.parse(argResults?['index'] ?? '-1');
+    index = index == -1 ? 0 : index;
+    if (box.isEmpty) {
+      return 'TodoList is Empty, do not need to remove anyone.';
+    }
+    List<Todo> todoList = getTodosFromHive(box);
+
+    var removedTodo = todoList[index];
+    if (removedTodo.id.isEmpty) {
+      return 'Remove todo#$index#${removedTodo.title} failed.';
+    }
+    box.delete(removedTodo.id);
+    return 'Remove todo#$index#${removedTodo.title} success.';
+  }
+
+  RemoveCommand(this.box) {
+    argParser.addOption('index', help: 'Index of the Todo to be deleted.');
   }
 }
 
@@ -197,7 +220,7 @@ class ResetCommand extends Command<String> {
     if (box.isNotEmpty) {
       box.deleteAll(box.keys);
     }
-    if (box.isEmpty){
+    if (box.isEmpty) {
       return 'Reset Success.';
     }
     return 'Reset Failed.';
