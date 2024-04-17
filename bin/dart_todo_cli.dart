@@ -19,7 +19,7 @@ void main(List<String> arguments) async {
     ..addCommand(ListCommand(box))
     ..addCommand(RemoveCommand())
     ..addCommand(EditCommand())
-    ..addCommand(ResetCommand());
+    ..addCommand(ResetCommand(box));
   runner.argParser
       .addOption('sub_command', help: 'The subCommand will be invoked.');
   final output = await runner.run(arguments);
@@ -66,12 +66,16 @@ class ListCommand extends Command<String> {
         .toList()
         .map((e) => e.map2Todo())
         .toList();
+    if (box.isEmpty){
+      return 'TodoList is Empty.';
+    }
     if (verbose) {
       todoList.sort((t1, t2) => compareTodo(t1, t2));
       int count = 0;
       print('TodoList ################################');
       for (var todo in todoList) {
-        print('$count ${todo.title} ${todo.priority} ${todo.status} ${todo.updateAt}');
+        print(
+            '$count ${todo.title} ${todo.priority} ${todo.status} ${todo.updateAt}');
         count++;
       }
     } else {
@@ -101,8 +105,10 @@ class ListCommand extends Command<String> {
   }
 
   ListCommand(this.box) {
-    argParser.addFlag('verbose',defaultsTo: false,
-        abbr: 'v', help: 'List Todos in verbose formatter or not');
+    argParser.addFlag('verbose',
+        defaultsTo: false,
+        abbr: 'v',
+        help: 'List Todos in verbose formatter or not');
   }
 }
 
@@ -178,6 +184,8 @@ class EditPriorityCommand extends Command<String> {
 }
 
 class ResetCommand extends Command<String> {
+  late Box box;
+
   @override
   String get name => 'reset';
 
@@ -186,6 +194,14 @@ class ResetCommand extends Command<String> {
 
   @override
   FutureOr<String>? run() {
-    return description;
+    if (box.isNotEmpty) {
+      box.deleteAll(box.keys);
+    }
+    if (box.isEmpty){
+      return 'Reset Success.';
+    }
+    return 'Reset Failed.';
   }
+
+  ResetCommand(this.box);
 }
