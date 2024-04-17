@@ -1,8 +1,20 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:hive/hive.dart';
+import 'package:path/path.dart' as p;
 
 void main(List<String> arguments) async {
+  print(Directory.systemTemp);
+  Hive.init(p.join(Directory.systemTemp.path, 'tmp'));
+
+  var box = await Hive.openBox('testBox');
+
+  box.put('name', 'David');
+
+  print('Name: ${box.get('name')}');
+
   final runner = CommandRunner<String>('todo', 'Todo Cli')
     ..addCommand(AddCommand())
     ..addCommand(ListCommand())
