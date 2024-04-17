@@ -4,19 +4,15 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:hive/hive.dart';
 import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 
 void main(List<String> arguments) async {
-  print(Directory.systemTemp);
   Hive.init(p.join(Directory.systemTemp.path, 'tmp'));
 
-  var box = await Hive.openBox('testBox');
-
-  box.put('name', 'David');
-
-  print('Name: ${box.get('name')}');
+  var box = await Hive.openBox('todoBox');
 
   final runner = CommandRunner<String>('todo', 'Todo Cli')
-    ..addCommand(AddCommand())
+    ..addCommand(AddCommand(box))
     ..addCommand(ListCommand())
     ..addCommand(RemoveCommand())
     ..addCommand(EditCommand())
@@ -28,6 +24,8 @@ void main(List<String> arguments) async {
 }
 
 class AddCommand extends Command<String> {
+  final Box box;
+
   @override
   String get name => 'add';
 
@@ -36,10 +34,15 @@ class AddCommand extends Command<String> {
 
   @override
   FutureOr<String>? run() {
-    return description;
+    var key = Uuid().v4();
+   final title =  argResults?['title'] ?? '';
+    box.put(key, title);
+    return 'Add Todo#$title success.';
   }
 
-  AddCommand();
+  AddCommand(this.box) {
+    argParser.addOption('title', help: 'Title of the Todo');
+  }
 }
 
 class ListCommand extends Command<String> {
