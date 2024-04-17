@@ -31,10 +31,10 @@ class HiveTodo extends HiveObject {
       this.createAt, this.updateAt);
 }
 
-extension on HiveTodo {
+extension HiveTodoExtension on HiveTodo {
   Todo map2Todo() {
     var todo = Todo(id, title);
-    todo.desc = this.desc;
+    todo.desc = desc;
     todo.status = status.toStatus();
     todo.priority = priority.toPriority();
     todo.createAt = createAt;

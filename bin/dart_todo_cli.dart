@@ -60,10 +60,50 @@ class ListCommand extends Command<String> {
 
   @override
   FutureOr<String>? run() {
-    return description;
+    final verbose = argResults?['verbose'];
+    var todoList = box.values
+        .map((e) => e as HiveTodo)
+        .toList()
+        .map((e) => e.map2Todo())
+        .toList();
+    if (verbose) {
+      todoList.sort((t1, t2) => compareTodo(t1, t2));
+      int count = 0;
+      print('TodoList ################################');
+      for (var todo in todoList) {
+        print('$count ${todo.title} ${todo.priority} ${todo.status} ${todo.updateAt}');
+        count++;
+      }
+    } else {
+      todoList.sort((t1, t2) => compareTodo(t1, t2));
+      int count = 0;
+      print('TodoList ################################');
+      for (var todo in todoList) {
+        print('$count ${todo.title}');
+        count++;
+      }
+    }
+    return '';
   }
 
-  ListCommand(this.box);
+  int compareTodo(Todo t1, Todo t2) {
+    var c1 = t1.priority.index.compareTo(t2.priority.index);
+    if (c1 == 0) {
+      var c2 = t1.updateAt.compareTo(t2.updateAt);
+      if (c2 == 0) {
+        return t1.createAt.compareTo(t2.createAt);
+      } else {
+        return c2;
+      }
+    } else {
+      return t1.priority.index.compareTo(t2.priority.index);
+    }
+  }
+
+  ListCommand(this.box) {
+    argParser.addFlag('verbose',defaultsTo: false,
+        abbr: 'v', help: 'List Todos in verbose formatter or not');
+  }
 }
 
 class RemoveCommand extends Command<String> {
