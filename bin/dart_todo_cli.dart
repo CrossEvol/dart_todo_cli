@@ -2,18 +2,21 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:dart_todo_cli/src/common.dart';
+import 'package:dart_todo_cli/src/hive.dart';
 import 'package:hive/hive.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 void main(List<String> arguments) async {
   Hive.init(p.join(Directory.systemTemp.path, 'tmp'));
+  Hive.registerAdapter(HiveTodoAdapter());
 
   var box = await Hive.openBox('todoBox');
 
   final runner = CommandRunner<String>('todo', 'Todo Cli')
     ..addCommand(AddCommand(box))
-    ..addCommand(ListCommand())
+    ..addCommand(ListCommand(box))
     ..addCommand(RemoveCommand())
     ..addCommand(EditCommand())
     ..addCommand(ResetCommand());
@@ -35,8 +38,8 @@ class AddCommand extends Command<String> {
   @override
   FutureOr<String>? run() {
     var key = Uuid().v4();
-   final title =  argResults?['title'] ?? '';
-    box.put(key, title);
+    final title = argResults?['title'] ?? '';
+    box.add(Todo(key, title).map2HiveTodo());
     return 'Add Todo#$title success.';
   }
 
@@ -46,6 +49,8 @@ class AddCommand extends Command<String> {
 }
 
 class ListCommand extends Command<String> {
+  late Box box;
+
   @override
   String get name => 'list';
 
@@ -57,6 +62,8 @@ class ListCommand extends Command<String> {
   FutureOr<String>? run() {
     return description;
   }
+
+  ListCommand(this.box);
 }
 
 class RemoveCommand extends Command<String> {
