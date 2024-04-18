@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:args/command_runner.dart';
 import 'package:dart_todo_cli/src/common.dart';
@@ -42,15 +43,66 @@ void main(List<String> arguments) async {
     ..addCommand(ListCommand(box))
     ..addCommand(RemoveCommand(box))
     ..addCommand(EditCommand(box))
-    ..addCommand(ResetCommand(box));
+    ..addCommand(ResetCommand(box))
+    ..addCommand(ShowCommand(box));
   runner.argParser
       .addOption('sub_command', help: 'The subCommand will be invoked.');
   final output = await runner.run(arguments);
   print(output);
 }
 
+class ShowCommand extends Command<String> {
+  late Box box;
+
+  @override
+  String get name => 'show';
+
+  @override
+  String get description => 'Show a todo item';
+
+  @override
+  FutureOr<String> run() {
+    var index = int.parse(argResults?['index'] ?? '-1');
+    if (index == -1) {
+      print('Did not assign index, default first.');
+    }
+    if (box.isEmpty) {
+      return 'TodoList is Empty, can not find anyone to show.';
+    }
+    var isJson = argResults?['json'];
+
+    List<Todo> todoList = getTodosFromHive(box);
+    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
+    var showTodo = todoList[index];
+
+    if (isJson) {
+      final jsonString = JsonEncoder.withIndent('  ').convert(showTodo);
+      print(jsonString);
+      return '';
+    } else {
+      print('ID              ${showTodo.id}');
+      print('Title           ${showTodo.title}');
+      print('Desc            ${showTodo.desc}');
+      print('Status          ${showTodo.status.name}');
+      print('Priority        ${showTodo.priority.name}');
+      print('CreateAt        ${showTodo.createAt}');
+      print('UpdateAt        ${showTodo.updateAt}');
+      return '';
+    }
+  }
+
+  ShowCommand(this.box) {
+    argParser.addOption('index',
+        abbr: 'i', help: 'Index of the Todo to be edited.');
+    argParser.addFlag('json',
+        defaultsTo: false, help: 'Show todo in pretty Json');
+    argParser.addFlag('text',
+        defaultsTo: false, help: 'Show todo in text format');
+  }
+}
+
 class AddCommand extends Command<String> {
-  final Box box;
+  late Box box;
 
   @override
   String get name => 'add';
