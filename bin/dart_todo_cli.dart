@@ -53,7 +53,9 @@ void main(List<String> arguments) async {
     ..addCommand(RemoveCommand(box))
     ..addCommand(EditCommand(box))
     ..addCommand(ResetCommand(box))
-    ..addCommand(ShowCommand(box));
+    ..addCommand(ShowCommand(box))
+    ..addCommand(DoneCommand(box))
+    ..addCommand(UndoneCommand(box));
   runner.argParser
       .addOption('sub_command', help: 'The subCommand will be invoked.');
   final output = await runner.run(arguments);
@@ -172,7 +174,8 @@ class ListCommand extends Command<String> {
       int count = 0;
       print('TodoList ################################');
       for (var todo in todoList) {
-        print('$count ${todo.title}');
+        print(
+            '$count ${todo.title} ${todo.status == Status.completed ? '√' : 'X'}');
         count++;
       }
     }
@@ -370,4 +373,91 @@ class ResetCommand extends Command<String> {
   }
 
   ResetCommand(this.box);
+}
+
+class DoneCommand extends Command<String> {
+  late Box box;
+
+  @override
+  String get name => 'done';
+
+  @override
+  String get description => 'Done a todo , change status to completed';
+
+  @override
+  FutureOr<String> run() {
+    var isAll = argResults?['all'];
+    var index = int.parse(argResults?['index'] ?? '-1');
+    if (index == -1 && !isAll) {
+      return 'Done todo need assign index.';
+    }
+
+    if (!isAll) {
+      var todo = getTodoByIndex(box, index);
+      if (todo.status == Status.completed) {
+        return 'Todo #$index has been completed.';
+      }
+      todo.status = Status.completed;
+      box.put(todo.id, todo.map2HiveTodo());
+      return 'Done Todo#$index';
+    } else {
+      var todoList = getTodosFromHive(box);
+      todoList = getTodosFromHive(box).map((e) {
+        e.status = Status.completed;
+        return e;
+      }).toList();
+      box.putAll({for (var todo in todoList) todo.id: todo.map2HiveTodo()});
+      return 'Done All Todos.';
+    }
+  }
+
+  DoneCommand(this.box) {
+    argParser.addOption('index',
+        abbr: 'i', help: 'Index of the Todo to be edited.');
+    argParser.addFlag('all',
+        abbr: 'a', defaultsTo: false, help: 'Complete all the todos.');
+  }
+}
+
+class UndoneCommand extends Command<String> {
+  late Box box;
+
+  @override
+  String get name => 'undone';
+
+  @override
+  String get description => 'Undone a todo , change status to pending';
+
+  @override
+  FutureOr<String> run() {
+    var isAll = argResults?['all'];
+    var index = int.parse(argResults?['index'] ?? '-1');
+    if (index == -1 && !isAll) {
+      return 'Undone todo need assign index.';
+    }
+    if (!isAll) {
+      var todo = getTodoByIndex(box, index);
+      if (todo.status == Status.pending) {
+        return 'Todo #$index is pending';
+      }
+      todo.status = Status.pending;
+      box.put(todo.id, todo.map2HiveTodo());
+      return 'Undone Todo#$index';
+    } else {
+      var todoList = getTodosFromHive(box);
+      todoList = getTodosFromHive(box).map((e) {
+        e.status = Status.pending;
+        return e;
+      }).toList();
+      box.putAll({for (var todo in todoList) todo.id: todo.map2HiveTodo()});
+      return 'Undone All Todos.';
+    }
+  }
+
+  UndoneCommand(this.box) {
+    argParser.addOption('index',
+        abbr: 'i', help: 'Index of the Todo to be edited.');
+    argParser.addFlag('all',
+        abbr: 'a', defaultsTo: false, help: 'Complete all the todos.');
+  }
 }
