@@ -1,6 +1,8 @@
 import 'package:enum_to_string/enum_to_string.dart';
-
+import 'package:json_annotation/json_annotation.dart';
 import 'hive.dart';
+
+part 'common.g.dart';
 
 enum Priority { high, medium, low }
 
@@ -16,7 +18,7 @@ extension StringToEnum on String {
 
 enum Status { pending, completed }
 
-
+@JsonSerializable()
 class Todo {
   String id = '';
   String title = '';
@@ -27,6 +29,10 @@ class Todo {
   DateTime updateAt = DateTime.now();
 
   Todo(this.id, this.title);
+
+  factory Todo.fromJson(Map<String, dynamic> json) => _$TodoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$TodoToJson(this);
 }
 
 extension TodoExtension on Todo {
