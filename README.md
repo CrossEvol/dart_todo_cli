@@ -6,6 +6,7 @@ Todo:
 - add 
 - list
 - remove
+- show
 - edit
   - title
   - desc

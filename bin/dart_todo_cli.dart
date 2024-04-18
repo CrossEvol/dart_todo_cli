@@ -41,7 +41,7 @@ void main(List<String> arguments) async {
     ..addCommand(AddCommand(box))
     ..addCommand(ListCommand(box))
     ..addCommand(RemoveCommand(box))
-    ..addCommand(EditCommand())
+    ..addCommand(EditCommand(box))
     ..addCommand(ResetCommand(box));
   runner.argParser
       .addOption('sub_command', help: 'The subCommand will be invoked.');
@@ -133,8 +133,9 @@ class RemoveCommand extends Command<String> {
     if (box.isEmpty) {
       return 'TodoList is Empty, do not need to remove anyone.';
     }
-    List<Todo> todoList = getTodosFromHive(box);
 
+    List<Todo> todoList = getTodosFromHive(box);
+    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
     var removedTodo = todoList[index];
     if (removedTodo.id.isEmpty) {
       return 'Remove todo#$index#${removedTodo.title} failed.';
@@ -144,11 +145,14 @@ class RemoveCommand extends Command<String> {
   }
 
   RemoveCommand(this.box) {
-    argParser.addOption('index', help: 'Index of the Todo to be deleted.');
+    argParser.addOption('index',
+        abbr: 'i', help: 'Index of the Todo to be deleted.');
   }
 }
 
 class EditCommand extends Command<String> {
+  late Box box;
+
   @override
   String get name => 'edit';
 
@@ -160,49 +164,121 @@ class EditCommand extends Command<String> {
     return description;
   }
 
-  EditCommand() {
-    addSubcommand(EditTitleCommand());
-    addSubcommand(EditDescCommand());
-    addSubcommand(EditPriorityCommand());
+  EditCommand(this.box) {
+    addSubcommand(EditTitleCommand(box));
+    addSubcommand(EditDescCommand(box));
+    addSubcommand(EditPriorityCommand(box));
   }
 }
 
 class EditTitleCommand extends Command<String> {
+  late Box box;
+
   @override
-  String get name => 'edit title';
+  String get name => 'title';
 
   @override
   String get description => 'Edit a todo title.';
 
   @override
   FutureOr<String>? run() {
-    return description;
+    var index = int.parse(argResults?['index'] ?? '-1');
+    if (index == -1) {
+      return 'Edit todo need assign index.';
+    }
+    var title = (argResults?['title'] ?? '') as String;
+    if (title.isEmpty) {
+      return 'Empty Title';
+    }
+
+    List<Todo> todoList = getTodosFromHive(box);
+    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
+    var editedTodo = todoList[index];
+    editedTodo.title = title;
+    box.put(editedTodo.id, editedTodo.map2HiveTodo());
+    return 'Edit Todo#$index#$title success.';
+  }
+
+  EditTitleCommand(this.box) {
+    argParser.addOption('index',
+        abbr: 'i', help: 'Index of the Todo to be edited.');
+    argParser.addOption('title',
+        abbr: 'v', help: 'Title of the Todo will be updated to.');
   }
 }
 
 class EditDescCommand extends Command<String> {
+  late Box box;
+
   @override
-  String get name => 'edit desc';
+  String get name => 'desc';
 
   @override
   String get description => 'Edit a todo desc.';
 
   @override
   FutureOr<String>? run() {
-    return description;
+    var index = int.parse(argResults?['index'] ?? '-1');
+    if (index == -1) {
+      return 'Edit todo need assign index.';
+    }
+    var desc = (argResults?['desc'] ?? '') as String;
+    if (desc.isEmpty) {
+      return 'Empty Desc';
+    }
+
+    List<Todo> todoList = getTodosFromHive(box);
+    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
+    var editedTodo = todoList[index];
+    editedTodo.desc = desc;
+    box.put(editedTodo.id, editedTodo.map2HiveTodo());
+    return 'Edit Todo#$index#${desc.length > 20 ? "${desc.substring(0, 20)}..." : desc} success.';
+  }
+
+  EditDescCommand(this.box) {
+    argParser.addOption('index',
+        abbr: 'i', help: 'Index of the Todo to be edited.');
+    argParser.addOption('desc',
+        abbr: 'v', help: 'Desc of the Todo will be updated to.');
   }
 }
 
 class EditPriorityCommand extends Command<String> {
+  late Box box;
+
   @override
-  String get name => 'edit priority';
+  String get name => 'priority';
 
   @override
   String get description => 'Edit a todo priority.';
 
   @override
   FutureOr<String>? run() {
-    return description;
+    var index = int.parse(argResults?['index'] ?? '-1');
+    if (index == -1) {
+      return 'Edit todo need assign index.';
+    }
+    var priority = (argResults?['priority'] ?? '') as String;
+    if (priority.isEmpty) {
+      return 'Empty Priority';
+    }
+    if (!Priority.values.map((e) => e.name).toList().contains(priority)) {
+      return 'Priority value only permit [${Priority.values.map((e) => e.name).join(', ')}]';
+    }
+
+    List<Todo> todoList = getTodosFromHive(box);
+    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
+    var editedTodo = todoList[index];
+    editedTodo.priority = priority.toPriority();
+    box.put(editedTodo.id, editedTodo.map2HiveTodo());
+    return 'Edit Todo#$index#$priority success.';
+  }
+
+  EditPriorityCommand(this.box) {
+    argParser.addOption('index',
+        abbr: 'i', help: 'Index of the Todo to be edited.');
+    argParser.addOption('priority',
+        abbr: 'v', help: 'Title of the Todo will be updated to.');
   }
 }
 
