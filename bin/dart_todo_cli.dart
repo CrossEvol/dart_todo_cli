@@ -23,6 +23,12 @@ int compareTodoByPriorityThenTime(Todo t1, Todo t2) {
   }
 }
 
+Todo getTodoByIndex(Box box, int index) {
+  List<Todo> todoList = getTodosFromHive(box);
+  todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
+  return todoList[index];
+}
+
 List<Todo> getTodosFromHive(Box box, [Status? status]) {
   var todoList = box.values
       .map((e) => e as HiveTodo)
@@ -74,9 +80,7 @@ class ShowCommand extends Command<String> {
     }
     var isJson = argResults?['json'];
 
-    List<Todo> todoList = getTodosFromHive(box);
-    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
-    var showTodo = todoList[index];
+    var showTodo = getTodoByIndex(box, index);
 
     if (isJson) {
       final jsonString = JsonEncoder.withIndent('  ').convert(showTodo);
@@ -205,9 +209,7 @@ class RemoveCommand extends Command<String> {
       return 'TodoList is Empty, do not need to remove anyone.';
     }
 
-    List<Todo> todoList = getTodosFromHive(box);
-    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
-    var removedTodo = todoList[index];
+    var removedTodo = getTodoByIndex(box, index);
     if (removedTodo.id.isEmpty) {
       return 'Remove todo#$index#${removedTodo.title} failed.';
     }
@@ -262,9 +264,7 @@ class EditTitleCommand extends Command<String> {
       return 'Empty Title';
     }
 
-    List<Todo> todoList = getTodosFromHive(box);
-    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
-    var editedTodo = todoList[index];
+    var editedTodo = getTodoByIndex(box, index);
     editedTodo.title = title;
     box.put(editedTodo.id, editedTodo.map2HiveTodo());
     return 'Edit Todo#$index#$title success.';
@@ -298,9 +298,7 @@ class EditDescCommand extends Command<String> {
       return 'Empty Desc';
     }
 
-    List<Todo> todoList = getTodosFromHive(box);
-    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
-    var editedTodo = todoList[index];
+    var editedTodo = getTodoByIndex(box, index);
     editedTodo.desc = desc;
     box.put(editedTodo.id, editedTodo.map2HiveTodo());
     return 'Edit Todo#$index#${desc.length > 20 ? "${desc.substring(0, 20)}..." : desc} success.';
@@ -337,9 +335,7 @@ class EditPriorityCommand extends Command<String> {
       return 'Priority value only permit [${Priority.values.map((e) => e.name).join(', ')}]';
     }
 
-    List<Todo> todoList = getTodosFromHive(box);
-    todoList.sort((t1, t2) => compareTodoByPriorityThenTime(t1, t2));
-    var editedTodo = todoList[index];
+    var editedTodo = getTodoByIndex(box, index);
     editedTodo.priority = priority.toPriority();
     box.put(editedTodo.id, editedTodo.map2HiveTodo());
     return 'Edit Todo#$index#$priority success.';
