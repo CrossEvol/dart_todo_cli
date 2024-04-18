@@ -23,12 +23,15 @@ int compareTodoByPriorityThenTime(Todo t1, Todo t2) {
   }
 }
 
-List<Todo> getTodosFromHive(Box box) {
+List<Todo> getTodosFromHive(Box box, [Status? status]) {
   var todoList = box.values
       .map((e) => e as HiveTodo)
       .toList()
       .map((e) => e.map2Todo())
       .toList();
+  if (status != null) {
+    todoList = todoList.where((element) => element.status == status).toList();
+  }
   return todoList;
 }
 
@@ -119,7 +122,12 @@ class AddCommand extends Command<String> {
   }
 
   AddCommand(this.box) {
-    argParser.addOption('title', help: 'Title of the Todo');
+    argParser.addOption('title', abbr: 't', help: 'Title of the Todo');
+    argParser.addOption('priority',
+        abbr: 'p',
+        help:
+            'Priority of the Todo, only permits [${Priority.values.map((e) => e.name).join(', ')}]');
+    argParser.addOption('desc', abbr: 'd', help: 'Title of the Todo');
   }
 }
 
@@ -136,7 +144,13 @@ class ListCommand extends Command<String> {
   @override
   FutureOr<String>? run() {
     final verbose = argResults?['verbose'];
-    List<Todo> todoList = getTodosFromHive(box);
+    final status = argResults?['status'] as String;
+    if (status.isNotEmpty &&
+        !Status.values.map((e) => e.name).contains(status)) {
+      return 'Status only permits [${Status.values.map((e) => e.name).join(', ')}].';
+    }
+    List<Todo> todoList =
+        getTodosFromHive(box, status.isNotEmpty ? status.toStatus() : null);
     if (box.isEmpty) {
       return 'TodoList is Empty.';
     }
@@ -166,6 +180,11 @@ class ListCommand extends Command<String> {
         defaultsTo: false,
         abbr: 'v',
         help: 'List Todos in verbose formatter or not');
+    argParser.addOption('status',
+        defaultsTo: '',
+        abbr: 's',
+        help:
+            'Status only permits [${Status.values.map((e) => e.name).join(', ')}].');
   }
 }
 
